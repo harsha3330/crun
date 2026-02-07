@@ -1,0 +1,55 @@
+1. Docker Token 
+TOKEN=$(curl -s \
+  "https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/busybox:pull" \
+  | jq -r .token)
+
+2. Getting all supporiting manifests
+curl -s \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+  https://registry-1.docker.io/v2/library/busybox/manifests/latest \
+  | jq . > manifests/manifest.json
+
+This gets all the manifests for all os and archs
+
+3. jq '.manifests[] | {digest, platform}' manifests/manifest.json
+get the digests for os , arch
+
+4. get the layers 
+LAYER_DIGEST=$(jq -r '.layers[0].digest' manifests/image-manifest.json)
+curl -L \
+  -H "Authorization: Bearer $TOKEN" \
+  https://registry-1.docker.io/v2/library/busybox/blobs/$LAYER_DIGEST \
+  -o blobs/layer.tar.gz
+
+
+5. verify hash
+sha256sum blobs/layer.tar.gz
+
+
+6. extract the layer 
+tar -xzf layer.tar.gz -C layers/<digest>
+
+
+7. create overlay fs for container 
+mkdir -p containers/c1/upper containers/c1/work containers/c1/merged
+
+mount -t overlay overlay \
+  -o lowerdir=$(pwd)/layers/l3:$(pwd)/layers/l2:$(pwd)/layers/l1,\
+upperdir=$(pwd)/containers/c1/upper,\
+workdir=$(pwd)/containers/c1/work \
+  $(pwd)/containers/c1/merged
+
+
+8. starting the process
+
+parent:
+  clone(CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS)
+
+child:
+  mount --make-rprivate /
+  chroot merged/
+  chdir("/")
+  mount -t proc proc /proc
+  execve(command)
+
