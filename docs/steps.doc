@@ -1,3 +1,9 @@
+0. crun init 
+i) init the base filessystem and dirs 
+ii) setup configs
+iii) logger setup from stored configs
+
+
 1. crun pull <image>
 
 i) filesystem work. No namespaces. No cgroups.
