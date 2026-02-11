@@ -6,14 +6,11 @@ import (
 	"path/filepath"
 
 	"github.com/harsha3330/crun/internal/config"
+	logger "github.com/harsha3330/crun/internal/log"
 	"github.com/harsha3330/crun/internal/pkg"
 )
 
-func Init(cfg config.Config, log *slog.Logger) error {
-	if cfg.RootDir == "" {
-		return fmt.Errorf("root dir is empty")
-	}
-
+func Init(cfg config.Config, log *slog.Logger, stater logger.Console) error {
 	dirs := []string{
 		cfg.RootDir,
 		filepath.Join(cfg.RootDir, "images"),
@@ -29,8 +26,24 @@ func Init(cfg config.Config, log *slog.Logger) error {
 				"err", err,
 			)
 			return fmt.Errorf("init failed for path %s: %w", dir, err)
+		} else {
+			msg := fmt.Sprintf("created directory %s", dir)
+			stater.Success(msg)
 		}
 	}
+
+	if err := config.Write(cfg); err != nil {
+		log.Error("failed to write config",
+			"path", cfg.ConfigFilePath,
+			"err", err,
+		)
+		return err
+	}
+
+	log.Info("crun initialized",
+		"rootDir", cfg.RootDir,
+		"config", cfg.ConfigFilePath,
+	)
 
 	return nil
 }

@@ -17,6 +17,7 @@ func main() {
 
 	cfg := config.Default()
 	log, err := logger.New(cfg)
+	stater := logger.Console{}
 	if err != nil {
 		panic(err)
 	}
@@ -25,10 +26,11 @@ func main() {
 	case "init":
 		if pkg.CheckPath(cfg.ConfigFilePath, false) == nil {
 			log.Error("crun init has already happended")
+			stater.Error("crun init has already happended")
 			os.Exit(1)
 		}
 
-		if err := runtime.Init(cfg, log); err != nil {
+		if err := runtime.Init(cfg, log, stater); err != nil {
 			log.Error(fmt.Sprintf("crun init failed : %v", err.Error()))
 			os.Exit(1)
 		}

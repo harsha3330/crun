@@ -5,18 +5,20 @@ import (
 	"os"
 )
 
-func Status(msg string, args ...any) {
+type Console struct{}
+
+func (Console) Status(msg string, args ...any) {
 	fmt.Fprintf(os.Stdout, msg+"\n", args...)
 }
 
-func Success(msg string, args ...any) {
+func (Console) Success(msg string, args ...any) {
 	fmt.Fprintf(os.Stdout, "✔ "+msg+"\n", args...)
 }
 
-func Warn(msg string, args ...any) {
+func (Console) Warn(msg string, args ...any) {
 	fmt.Fprintf(os.Stdout, "⚠ "+msg+"\n", args...)
 }
 
-func Error(msg string, args ...any) {
+func (Console) Error(msg string, args ...any) {
 	fmt.Fprintf(os.Stderr, "✖ "+msg+"\n", args...)
 }
