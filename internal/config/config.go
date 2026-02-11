@@ -2,13 +2,12 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
 
 type LogLevel string
-
-const ConfigFilePath string = "/etc/crun/config.toml"
 
 const (
 	LevelDebug LogLevel = "debug"
@@ -25,18 +24,22 @@ const (
 )
 
 type Config struct {
-	RootDir   string
-	AppLogDir string
-	LogFormat LogFormat
-	LogLevel  LogLevel
+	RootDir        string
+	AppLogDir      string
+	LogFormat      LogFormat
+	LogLevel       LogLevel
+	ConfigFilePath string
 }
 
 func Default() Config {
+	home, _ := os.UserHomeDir()
+
 	return Config{
-		RootDir:   "/var/lib/crun",
-		LogLevel:  LevelInfo,
-		LogFormat: JSONLogFormat,
-		AppLogDir: "/run/crun",
+		RootDir:        filepath.Join(home, ".crun"),
+		AppLogDir:      filepath.Join(os.TempDir(), "crun"),
+		LogLevel:       LevelInfo,
+		LogFormat:      JSONLogFormat,
+		ConfigFilePath: filepath.Join(home, ".crun", "config.toml"),
 	}
 }
 
@@ -44,7 +47,7 @@ func Load(path string) (Config, error) {
 	cfg := Default()
 
 	if path == "" {
-		path = ConfigFilePath
+		path = cfg.ConfigFilePath
 	}
 
 	data, err := os.ReadFile(path)

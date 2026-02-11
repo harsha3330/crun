@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func CheckPath(path string, isDir bool) error {
@@ -25,15 +26,11 @@ func CheckPath(path string, isDir bool) error {
 	return nil
 }
 
-func EnsurePath(path string, isDir bool) error {
+func EnsureDir(path string) error {
 	info, err := os.Stat(path)
 	if err == nil {
-		if !info.IsDir() && isDir {
+		if !info.IsDir() {
 			return fmt.Errorf("%s exists but is not a directory", path)
-		}
-
-		if info.IsDir() && !isDir {
-			return fmt.Errorf("%s exists but is not a file", path)
 		}
 		return nil
 	}
@@ -42,5 +39,30 @@ func EnsurePath(path string, isDir bool) error {
 		return err
 	}
 
-	return os.MkdirAll(path, 0700)
+	return os.MkdirAll(path, 0777)
+}
+
+func EnsureFile(path string) error {
+	info, err := os.Stat(path)
+	if err == nil {
+		if info.IsDir() {
+			return fmt.Errorf("%s exists but is a directory", path)
+		}
+		return nil
+	}
+
+	if !os.IsNotExist(err) {
+		return err
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0766); err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL, 0644)
+	if err != nil {
+		return err
+	}
+	return file.Close()
 }

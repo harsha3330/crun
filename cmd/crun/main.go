@@ -15,10 +15,7 @@ func main() {
 		fmt.Println("Usage: crun <command>")
 	}
 
-	cfg, err := config.Load(config.ConfigFilePath)
-	if err != nil {
-		panic(err)
-	}
+	cfg := config.Default()
 	log, err := logger.New(cfg)
 	if err != nil {
 		panic(err)
@@ -26,7 +23,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "init":
-		if pkg.CheckPath(config.ConfigFilePath, false) == nil {
+		if pkg.CheckPath(cfg.ConfigFilePath, false) == nil {
 			log.Error("crun init has already happended")
 			os.Exit(1)
 		}

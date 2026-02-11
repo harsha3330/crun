@@ -23,7 +23,7 @@ func Init(cfg config.Config, log *slog.Logger) error {
 	}
 
 	for _, dir := range dirs {
-		if err := pkg.EnsurePath(dir, true); err != nil {
+		if err := pkg.EnsureDir(dir); err != nil {
 			log.Error("ensure path failed",
 				"path", dir,
 				"err", err,

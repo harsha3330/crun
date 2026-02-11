@@ -2,26 +2,29 @@ package logger
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/harsha3330/crun/internal/config"
+	"github.com/harsha3330/crun/internal/pkg"
 )
 
 func New(cfg config.Config) (*slog.Logger, error) {
+
 	logFile := filepath.Join(cfg.AppLogDir, "crun.log")
+
+	err := pkg.EnsureFile(logFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logfile: %s", err.Error())
+	}
 
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
+		return nil, fmt.Errorf("failed to open log file: %s", err.Error())
 	}
 
-	writer := io.MultiWriter(file, os.Stdout)
-
 	level := parseLevel(cfg.LogLevel)
-
 	opts := &slog.HandlerOptions{
 		Level: level,
 	}
@@ -29,11 +32,11 @@ func New(cfg config.Config) (*slog.Logger, error) {
 	var handler slog.Handler
 	switch cfg.LogFormat {
 	case config.JSONLogFormat:
-		handler = slog.NewJSONHandler(writer, opts)
+		handler = slog.NewJSONHandler(file, opts)
 	case config.TextLogFormat:
-		handler = slog.NewTextHandler(writer, opts)
+		handler = slog.NewTextHandler(file, opts)
 	default:
-		handler = slog.NewJSONHandler(writer, opts)
+		handler = slog.NewJSONHandler(file, opts)
 	}
 
 	logger := slog.New(handler)
