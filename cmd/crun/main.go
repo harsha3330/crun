@@ -31,7 +31,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := runtime.Init(cfg); err != nil {
+		if err := runtime.Init(cfg, log); err != nil {
 			log.Error(fmt.Sprintf("crun init failed : %v", err.Error()))
 			os.Exit(1)
 		}

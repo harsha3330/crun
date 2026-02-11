@@ -2,13 +2,14 @@ package runtime
 
 import (
 	"fmt"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/harsha3330/crun/internal/config"
 	"github.com/harsha3330/crun/internal/pkg"
 )
 
-func Init(cfg config.Config) error {
+func Init(cfg config.Config, log *slog.Logger) error {
 	if cfg.RootDir == "" {
 		return fmt.Errorf("root dir is empty")
 	}
@@ -23,7 +24,11 @@ func Init(cfg config.Config) error {
 
 	for _, dir := range dirs {
 		if err := pkg.EnsurePath(dir, true); err != nil {
-			return err
+			log.Error("ensure path failed",
+				"path", dir,
+				"err", err,
+			)
+			return fmt.Errorf("init failed for path %s: %w", dir, err)
 		}
 	}
 
