@@ -35,36 +35,45 @@ func main() {
 
 		initCmd := flag.NewFlagSet("init", flag.ExitOnError)
 		logLevelStr := initCmd.String("log-level", "", "log level of the application")
-		logFormat := initCmd.String("log-format", "", "log format of the application")
+		logFormatStr := initCmd.String("log-format", "", "log format of the application")
 		initCmd.Parse(os.Args[2:])
 
-		var levelPtr *logger.LogLevel
-		var formatPtr *logger.LogFormat
-		if *logLevelStr != "" {
-			level := logger.LogLevel(*logLevelStr)
+		level := logger.LevelInfo
+		format := logger.JSONLogFormat
 
-			switch level {
+		if *logLevelStr == "" {
+			stater.Step("log level not provided, using default", "level", level)
+		} else {
+			l := logger.LogLevel(*logLevelStr)
+			switch l {
 			case logger.LevelDebug, logger.LevelInfo, logger.LevelWarn, logger.LevelError:
-				levelPtr = &level
-				cfg.LogLevel = *levelPtr
+				level = l
+				stater.Step("using log level", "level", level)
 			default:
-				stater.Error("invalid log level flag", "value", levelPtr)
-				os.Exit(1)
+				stater.Error("invalid log level", "value", *logLevelStr)
+				stater.Warn("falling back to default log level", "level", level)
 			}
 		}
 
-		if *logFormat != "" {
-			format := logger.LogFormat(*logFormat)
-
-			switch format {
+		if *logFormatStr == "" {
+			stater.Step("log format not provided, using default", "format", format)
+		} else {
+			f := logger.LogFormat(*logFormatStr)
+			switch f {
 			case logger.JSONLogFormat, logger.TextLogFormat:
-				formatPtr = &format
-				cfg.LogFomat = *formatPtr
+				format = f
+				stater.Step("using log format", "format", format)
 			default:
-				stater.Error("invalid log level format", "value", logFormat)
-				os.Exit(1)
+				stater.Error("invalid log format", "value", *logFormatStr)
+				stater.Warn("falling back to default log format", "format", format)
 			}
 		}
+
+		levelPtr := &level
+		formatPtr := &format
+
+		cfg.LogLevel = level
+		cfg.LogFomat = format
 
 		logOpts := logger.LogOptions{
 			LogLevel:  levelPtr,
