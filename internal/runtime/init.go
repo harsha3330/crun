@@ -11,7 +11,7 @@ import (
 )
 
 func Init(cfg *config.Config, logOpts *logger.LogOptions, log *slog.Logger, stater logger.Console) error {
-
+	log.Debug("Logging Opts", "Log Level", logOpts.LogLevel, "Log Format", logOpts.LogFormat)
 	dirs := []string{
 		cfg.RootDir,
 		filepath.Join(cfg.RootDir, "images"),
