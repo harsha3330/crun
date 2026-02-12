@@ -10,7 +10,28 @@ import (
 	"github.com/harsha3330/crun/internal/pkg"
 )
 
-func New(cfg config.Config) (*slog.Logger, error) {
+type LogLevel string
+
+const (
+	LevelDebug LogLevel = "debug"
+	LevelInfo  LogLevel = "info"
+	LevelWarn  LogLevel = "warn"
+	LevelError LogLevel = "error"
+)
+
+type LogFormat string
+
+const (
+	JSONLogFormat LogFormat = "json"
+	TextLogFormat LogFormat = "text"
+)
+
+type LogOptions struct {
+	LogLevel  *LogLevel
+	LogFormat *LogFormat
+}
+
+func New(cfg config.Config, logOpts *LogOptions) (*slog.Logger, error) {
 
 	logFile := filepath.Join(cfg.AppLogDir, "crun.log")
 
@@ -24,16 +45,16 @@ func New(cfg config.Config) (*slog.Logger, error) {
 		return nil, fmt.Errorf("failed to open log file: %s", err.Error())
 	}
 
-	level := parseLevel(cfg.LogLevel)
+	level := parseLevel(*logOpts.LogLevel)
 	opts := &slog.HandlerOptions{
 		Level: level,
 	}
 
 	var handler slog.Handler
-	switch cfg.LogFormat {
-	case config.JSONLogFormat:
+	switch *logOpts.LogFormat {
+	case JSONLogFormat:
 		handler = slog.NewJSONHandler(file, opts)
-	case config.TextLogFormat:
+	case TextLogFormat:
 		handler = slog.NewTextHandler(file, opts)
 	default:
 		handler = slog.NewJSONHandler(file, opts)
@@ -44,15 +65,15 @@ func New(cfg config.Config) (*slog.Logger, error) {
 	return logger, nil
 }
 
-func parseLevel(l config.LogLevel) slog.Level {
+func parseLevel(l LogLevel) slog.Level {
 	switch l {
-	case config.LevelDebug:
+	case LevelDebug:
 		return slog.LevelDebug
-	case config.LevelInfo:
+	case LevelInfo:
 		return slog.LevelInfo
-	case config.LevelWarn:
+	case LevelWarn:
 		return slog.LevelWarn
-	case config.LevelError:
+	case LevelError:
 		return slog.LevelError
 	default:
 		return slog.LevelInfo

@@ -7,27 +7,9 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type LogLevel string
-
-const (
-	LevelDebug LogLevel = "debug"
-	LevelInfo  LogLevel = "info"
-	LevelWarn  LogLevel = "warn"
-	LevelError LogLevel = "error"
-)
-
-type LogFormat string
-
-const (
-	JSONLogFormat LogFormat = "json"
-	TextLogFormat LogFormat = "text"
-)
-
 type Config struct {
 	RootDir        string
 	AppLogDir      string
-	LogFormat      LogFormat
-	LogLevel       LogLevel
 	ConfigFilePath string
 }
 
@@ -37,8 +19,6 @@ func Default() Config {
 	return Config{
 		RootDir:        filepath.Join(home, ".crun"),
 		AppLogDir:      filepath.Join(os.TempDir(), "crun"),
-		LogLevel:       LevelInfo,
-		LogFormat:      JSONLogFormat,
 		ConfigFilePath: filepath.Join(home, ".crun", "config.toml"),
 	}
 }

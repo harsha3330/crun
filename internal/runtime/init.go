@@ -10,12 +10,7 @@ import (
 	"github.com/harsha3330/crun/internal/pkg"
 )
 
-type InitOptions struct {
-	LogLevel *config.LogLevel
-}
-
-func Init(cfg *config.Config, log *slog.Logger, stater logger.Console, opts *InitOptions) error {
-	log.Debug("init arguments", "options", opts)
+func Init(cfg *config.Config, log *slog.Logger, stater logger.Console) error {
 
 	dirs := []string{
 		cfg.RootDir,
@@ -37,11 +32,6 @@ func Init(cfg *config.Config, log *slog.Logger, stater logger.Console, opts *Ini
 			stater.Success(msg)
 		}
 	}
-
-	if opts != nil && opts.LogLevel != nil {
-		cfg.LogLevel = *opts.LogLevel
-	}
-
 	if err := config.Write(*cfg); err != nil {
 		log.Error("failed to write config",
 			"path", cfg.ConfigFilePath,

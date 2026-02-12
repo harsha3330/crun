@@ -20,17 +20,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log, err := logger.New(cfg)
 	stater := logger.Console{}
-	if err != nil {
-		panic(err)
-	}
 
 	switch os.Args[1] {
 	case "init":
 		err := pkg.CheckPath(cfg.ConfigFilePath, false)
 		if err == nil {
-			log.Error("crun config file already present")
 			stater.Error("crun init already happended , exiting")
 			os.Exit(1)
 		} else {
@@ -39,28 +34,47 @@ func main() {
 
 		initCmd := flag.NewFlagSet("init", flag.ExitOnError)
 		logLevelStr := initCmd.String("log-level", "", "log level of the application")
+		logFormat := initCmd.String("log-format", "", "log format of the application")
 		initCmd.Parse(os.Args[2:])
 
-		var levelPtr *config.LogLevel
-
+		var levelPtr *logger.LogLevel
+		var formatPtr *logger.LogFormat
 		if *logLevelStr != "" {
-			level := config.LogLevel(*logLevelStr)
+			level := logger.LogLevel(*logLevelStr)
 
 			switch level {
-			case config.LevelDebug, config.LevelInfo, config.LevelWarn, config.LevelError:
+			case logger.LevelDebug, logger.LevelInfo, logger.LevelWarn, logger.LevelError:
 				levelPtr = &level
 			default:
-				log.Error("invalid log level", "logLevel", *logLevelStr)
-				stater.Error("invalid log level flag")
+				stater.Error("invalid log level flag", "value", levelPtr)
 				os.Exit(1)
 			}
 		}
 
-		opts := runtime.InitOptions{
-			LogLevel: levelPtr,
+		if *logFormat != "" {
+			format := logger.LogFormat(*logFormat)
+
+			switch format {
+			case logger.JSONLogFormat, logger.TextLogFormat:
+				formatPtr = &format
+			default:
+				stater.Error("invalid log level format", "value", logFormat)
+				os.Exit(1)
+			}
 		}
 
-		if err := runtime.Init(&cfg, log, stater, &opts); err != nil {
+		logOpts := logger.LogOptions{
+			LogLevel:  levelPtr,
+			LogFormat: formatPtr,
+		}
+
+		log, err := logger.New(cfg, &logOpts)
+		if err != nil {
+			stater.Error("unable to init logger", "error", err.Error())
+			panic(err)
+		}
+
+		if err := runtime.Init(&cfg, log, stater); err != nil {
 			log.Error("crun init failed", "error", err.Error())
 			stater.Error("init failed")
 			os.Exit(1)
