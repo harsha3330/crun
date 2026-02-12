@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -27,13 +28,39 @@ func main() {
 
 	switch os.Args[1] {
 	case "init":
-		if pkg.CheckPath(cfg.ConfigFilePath, false) == nil {
-			log.Error("crun init has already happended")
-			stater.Error("crun init has already happended")
+		err := pkg.CheckPath(cfg.ConfigFilePath, false)
+		if err == nil {
+			log.Error("crun config file already present")
+			stater.Error("crun init already happended , exiting")
 			os.Exit(1)
+		} else {
+			stater.Status("initializing crun")
 		}
 
-		if err := runtime.Init(cfg, log, stater); err != nil {
+		initCmd := flag.NewFlagSet("init", flag.ExitOnError)
+		logLevelStr := initCmd.String("log-level", "", "log level of the application")
+		initCmd.Parse(os.Args[2:])
+
+		var levelPtr *config.LogLevel
+
+		if *logLevelStr != "" {
+			level := config.LogLevel(*logLevelStr)
+
+			switch level {
+			case config.LevelDebug, config.LevelInfo, config.LevelWarn, config.LevelError:
+				levelPtr = &level
+			default:
+				log.Error("invalid log level", "logLevel", *logLevelStr)
+				stater.Error("invalid log level flag")
+				os.Exit(1)
+			}
+		}
+
+		opts := runtime.InitOptions{
+			LogLevel: levelPtr,
+		}
+
+		if err := runtime.Init(&cfg, log, stater, &opts); err != nil {
 			log.Error("crun init failed", "error", err.Error())
 			stater.Error("init failed")
 			os.Exit(1)

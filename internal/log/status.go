@@ -8,7 +8,11 @@ import (
 type Console struct{}
 
 func (Console) Status(msg string, args ...any) {
-	fmt.Fprintf(os.Stdout, msg+"\n", args...)
+	fmt.Fprintf(os.Stdout, "• "+msg+"\n", args...)
+}
+
+func (Console) Step(msg string, args ...any) {
+	fmt.Fprintf(os.Stdout, "→ "+msg+"\n", args...)
 }
 
 func (Console) Success(msg string, args ...any) {
