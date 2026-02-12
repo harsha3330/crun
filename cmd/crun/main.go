@@ -15,7 +15,10 @@ func main() {
 		fmt.Println("Usage: crun <command>")
 	}
 
-	cfg := config.Default()
+	cfg, err := config.Load("")
+	if err != nil {
+		panic(err)
+	}
 	log, err := logger.New(cfg)
 	stater := logger.Console{}
 	if err != nil {
@@ -31,8 +34,11 @@ func main() {
 		}
 
 		if err := runtime.Init(cfg, log, stater); err != nil {
-			log.Error(fmt.Sprintf("crun init failed : %v", err.Error()))
+			log.Error("crun init failed", "error", err.Error())
+			stater.Error("init failed")
 			os.Exit(1)
+		} else {
+			stater.Success("crun init completed")
 		}
 	case "help":
 		fmt.Println("help output for crun")

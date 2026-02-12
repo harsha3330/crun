@@ -37,6 +37,7 @@ func Init(cfg config.Config, log *slog.Logger, stater logger.Console) error {
 			"path", cfg.ConfigFilePath,
 			"err", err,
 		)
+		stater.Error("failed to config toml file")
 		return err
 	}
 
@@ -44,6 +45,6 @@ func Init(cfg config.Config, log *slog.Logger, stater logger.Console) error {
 		"rootDir", cfg.RootDir,
 		"config", cfg.ConfigFilePath,
 	)
-
+	stater.Success("created toml for config succesfully")
 	return nil
 }
