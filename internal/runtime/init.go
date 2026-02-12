@@ -10,7 +10,7 @@ import (
 	"github.com/harsha3330/crun/internal/pkg"
 )
 
-func Init(cfg *config.Config, log *slog.Logger, stater logger.Console) error {
+func Init(cfg *config.Config, logOpts *logger.LogOptions, log *slog.Logger, stater logger.Console) error {
 
 	dirs := []string{
 		cfg.RootDir,

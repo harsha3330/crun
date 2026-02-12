@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/harsha3330/crun/internal/config"
 	logger "github.com/harsha3330/crun/internal/log"
@@ -45,6 +46,7 @@ func main() {
 			switch level {
 			case logger.LevelDebug, logger.LevelInfo, logger.LevelWarn, logger.LevelError:
 				levelPtr = &level
+				cfg.LogLevel = *levelPtr
 			default:
 				stater.Error("invalid log level flag", "value", levelPtr)
 				os.Exit(1)
@@ -57,6 +59,7 @@ func main() {
 			switch format {
 			case logger.JSONLogFormat, logger.TextLogFormat:
 				formatPtr = &format
+				cfg.LogFomat = *formatPtr
 			default:
 				stater.Error("invalid log level format", "value", logFormat)
 				os.Exit(1)
@@ -66,15 +69,16 @@ func main() {
 		logOpts := logger.LogOptions{
 			LogLevel:  levelPtr,
 			LogFormat: formatPtr,
+			AppLogDir: filepath.Join(os.TempDir(), "crun"),
 		}
 
-		log, err := logger.New(cfg, &logOpts)
+		log, err := logger.New(&logOpts)
 		if err != nil {
 			stater.Error("unable to init logger", "error", err.Error())
 			panic(err)
 		}
 
-		if err := runtime.Init(&cfg, log, stater); err != nil {
+		if err := runtime.Init(&cfg, &logOpts, log, stater); err != nil {
 			log.Error("crun init failed", "error", err.Error())
 			stater.Error("init failed")
 			os.Exit(1)

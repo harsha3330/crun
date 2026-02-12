@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/harsha3330/crun/internal/config"
 	"github.com/harsha3330/crun/internal/pkg"
 )
 
@@ -29,11 +28,12 @@ const (
 type LogOptions struct {
 	LogLevel  *LogLevel
 	LogFormat *LogFormat
+	AppLogDir string
 }
 
-func New(cfg config.Config, logOpts *LogOptions) (*slog.Logger, error) {
+func New(logOpts *LogOptions) (*slog.Logger, error) {
 
-	logFile := filepath.Join(cfg.AppLogDir, "crun.log")
+	logFile := filepath.Join(logOpts.AppLogDir, "crun.log")
 
 	err := pkg.EnsureFile(logFile)
 	if err != nil {

@@ -5,12 +5,15 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	logger "github.com/harsha3330/crun/internal/log"
 )
 
 type Config struct {
 	RootDir        string
 	AppLogDir      string
 	ConfigFilePath string
+	LogLevel       logger.LogLevel
+	LogFomat       logger.LogFormat
 }
 
 func Default() Config {
@@ -20,6 +23,8 @@ func Default() Config {
 		RootDir:        filepath.Join(home, ".crun"),
 		AppLogDir:      filepath.Join(os.TempDir(), "crun"),
 		ConfigFilePath: filepath.Join(home, ".crun", "config.toml"),
+		LogLevel:       logger.LevelInfo,
+		LogFomat:       logger.JSONLogFormat,
 	}
 }
 
