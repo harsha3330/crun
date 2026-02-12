@@ -79,3 +79,48 @@ func parseLevel(l LogLevel) slog.Level {
 		return slog.LevelInfo
 	}
 }
+
+func BuildLogOptions(
+	logLevelStr string,
+	logFormatStr string,
+	stater Console,
+) (LogOptions, LogLevel, LogFormat) {
+
+	level := LevelInfo
+	format := JSONLogFormat
+
+	if logLevelStr == "" {
+		stater.Step("log level not provided, using default", "level", level)
+	} else {
+		l := LogLevel(logLevelStr)
+		switch l {
+		case LevelDebug, LevelInfo, LevelWarn, LevelError:
+			level = l
+			stater.Step("using log level", "level", level)
+		default:
+			stater.Error("invalid log level", "value", logLevelStr)
+			stater.Warn("falling back to default log level", "level", level)
+		}
+	}
+	if logFormatStr == "" {
+		stater.Step("log format not provided, using default", "format", format)
+	} else {
+		f := LogFormat(logFormatStr)
+		switch f {
+		case JSONLogFormat, TextLogFormat:
+			format = f
+			stater.Step("using log format", "format", format)
+		default:
+			stater.Error("invalid log format", "value", logFormatStr)
+			stater.Warn("falling back to default log format", "format", format)
+		}
+	}
+
+	opts := LogOptions{
+		LogLevel:  &level,
+		LogFormat: &format,
+		AppLogDir: filepath.Join(os.TempDir(), "crun"),
+	}
+
+	return opts, level, format
+}

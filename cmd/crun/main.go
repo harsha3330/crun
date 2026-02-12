@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/harsha3330/crun/internal/config"
 	logger "github.com/harsha3330/crun/internal/log"
@@ -37,49 +36,9 @@ func main() {
 		logLevelStr := initCmd.String("log-level", "", "log level of the application")
 		logFormatStr := initCmd.String("log-format", "", "log format of the application")
 		initCmd.Parse(os.Args[2:])
-
-		level := logger.LevelInfo
-		format := logger.JSONLogFormat
-
-		if *logLevelStr == "" {
-			stater.Step("log level not provided, using default", "level", level)
-		} else {
-			l := logger.LogLevel(*logLevelStr)
-			switch l {
-			case logger.LevelDebug, logger.LevelInfo, logger.LevelWarn, logger.LevelError:
-				level = l
-				stater.Step("using log level", "level", level)
-			default:
-				stater.Error("invalid log level", "value", *logLevelStr)
-				stater.Warn("falling back to default log level", "level", level)
-			}
-		}
-
-		if *logFormatStr == "" {
-			stater.Step("log format not provided, using default", "format", format)
-		} else {
-			f := logger.LogFormat(*logFormatStr)
-			switch f {
-			case logger.JSONLogFormat, logger.TextLogFormat:
-				format = f
-				stater.Step("using log format", "format", format)
-			default:
-				stater.Error("invalid log format", "value", *logFormatStr)
-				stater.Warn("falling back to default log format", "format", format)
-			}
-		}
-
-		levelPtr := &level
-		formatPtr := &format
-
+		logOpts, level, format := logger.BuildLogOptions(*logLevelStr, *logFormatStr, stater)
 		cfg.LogLevel = level
 		cfg.LogFomat = format
-
-		logOpts := logger.LogOptions{
-			LogLevel:  levelPtr,
-			LogFormat: formatPtr,
-			AppLogDir: filepath.Join(os.TempDir(), "crun"),
-		}
 
 		log, err := logger.New(&logOpts)
 		if err != nil {
