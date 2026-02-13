@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/harsha3330/crun/internal/pkg"
+	"github.com/pelletier/go-toml/v2"
 )
 
 type LogLevel string
@@ -123,4 +124,28 @@ func BuildLogOptions(
 	}
 
 	return opts, level, format
+}
+
+func GetLogOptions(tomlFilePath string) (*LogOptions, error) {
+	data, err := os.ReadFile(tomlFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg struct {
+		LogFormat LogFormat `toml:"logFormat"`
+		LogLevel  LogLevel  `toml:"logLevel"`
+		AppLogDir string    `toml:"appLogDir"`
+	}
+
+	err = toml.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LogOptions{
+		LogFormat: &cfg.LogFormat,
+		LogLevel:  &cfg.LogLevel,
+		AppLogDir: cfg.AppLogDir,
+	}, nil
 }

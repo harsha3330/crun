@@ -38,7 +38,7 @@ func main() {
 		initCmd.Parse(os.Args[2:])
 		logOpts, level, format := logger.BuildLogOptions(*logLevelStr, *logFormatStr, stater)
 		cfg.LogLevel = level
-		cfg.LogFomat = format
+		cfg.LogFormat = format
 
 		log, err := logger.New(&logOpts)
 		if err != nil {
@@ -53,10 +53,22 @@ func main() {
 		} else {
 			stater.Success("crun init completed")
 		}
+	case "pull":
+		logOpts, err := logger.GetLogOptions(cfg.ConfigFilePath)
+		if err != nil {
+			stater.Error("unable to get the logOptions from configfile")
+			panic(err)
+		}
+		log, err := logger.New(logOpts)
+		log.Debug("logopts", "logformat :", *logOpts.LogFormat, "loglevel :", *logOpts.LogLevel)
+		if err != nil {
+			stater.Error("unable to initalize the logger")
+			panic(err)
+		}
+		stater.Success("Initialized the logger")
+		err = runtime.Pull(log, stater, os.Args[2])
 	case "help":
 		fmt.Println("help output for crun")
-	case "pull":
-		fmt.Println("Pull the image")
 	default:
 		fmt.Printf("Unknown command : %s", os.Args[1])
 	}

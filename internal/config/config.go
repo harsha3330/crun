@@ -13,7 +13,7 @@ type Config struct {
 	AppLogDir      string
 	ConfigFilePath string
 	LogLevel       logger.LogLevel
-	LogFomat       logger.LogFormat
+	LogFormat      logger.LogFormat
 }
 
 func Default() Config {
@@ -24,7 +24,7 @@ func Default() Config {
 		AppLogDir:      filepath.Join(os.TempDir(), "crun"),
 		ConfigFilePath: filepath.Join(home, ".crun", "config.toml"),
 		LogLevel:       logger.LevelInfo,
-		LogFomat:       logger.JSONLogFormat,
+		LogFormat:      logger.JSONLogFormat,
 	}
 }
 
