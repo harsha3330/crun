@@ -1,26 +1,35 @@
-/var/lib/crun/
+.crun/
 ├── blobs/
-│   ├── 35608d9dd1147adf127ca16499e2ef58aed83f07dd2e1c8e502a874a304b579c   # layer blob (tar.gz)
-│   └── 8f814f8c8197e44ccb4dc87759c97e9ff23433ee8aed40f97b6a14a5e9b0230f   # config blob (json)
+│   └── sha256/
+│       ├── A-config
+│       ├── A-layer1
+│       ├── A-layer2
+│       ├── B-config
+│       ├── B-layer1
+│       └── B-layer2
 │
 ├── layers/
-│   └── 35608d9dd1147adf127ca16499e2ef58aed83f07dd2e1c8e502a874a304b579c/
-│       └── fs/                     # ← this IS the “diff”
-│           ├── bin/
-│           ├── etc/
-│           ├── usr/
-│           ├── .wh.foo
-│           └── ...
+│   ├── sha256:A-layer1/fs/
+│   ├── sha256:A-layer2/fs/
+│   ├── sha256:B-layer1/fs/
+│   └── sha256:B-layer2/fs/
 │
 ├── images/
-│   └── busybox/
-│       ├── manifest.json            # image manifest (layers order)
-│       └── config.json              # runtime metadata
-│
+│   └── nginx/
+│       ├── tags/
+│       │   ├── 0.1    → sha256:A
+│       │   ├── 1.2    → sha256:B
+│       │   └── latest → sha256:B
+│       │
+│       └── manifests/
+│           ├── sha256:A/
+│           │   ├── config.json
+│           │   └── layers
+│           └── sha256:B/
+│               ├── config.json
+│               └── layers
 └── containers/
     └── c1/
-        ├── upper/                   # container writes (copy-on-write)
-        ├── work/                    # overlayfs scratch (opaque)
-        ├── merged/                  # overlayfs mountpoint (rootfs)
-        ├── pid
-        └── state.json
+        ├── upper/
+        ├── work/
+        └── merged/

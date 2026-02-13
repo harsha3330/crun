@@ -43,7 +43,7 @@ func main() {
 		log, err := logger.New(&logOpts)
 		if err != nil {
 			stater.Error("unable to init logger", "error", err.Error())
-			panic(err)
+			os.Exit(1)
 		}
 
 		if err := runtime.Init(&cfg, &logOpts, log, stater); err != nil {
@@ -57,16 +57,19 @@ func main() {
 		logOpts, err := logger.GetLogOptions(cfg.ConfigFilePath)
 		if err != nil {
 			stater.Error("unable to get the logOptions from configfile")
-			panic(err)
+			os.Exit(1)
 		}
 		log, err := logger.New(logOpts)
 		log.Debug("logopts", "logformat :", *logOpts.LogFormat, "loglevel :", *logOpts.LogLevel)
 		if err != nil {
 			stater.Error("unable to initalize the logger")
-			panic(err)
+			os.Exit(1)
 		}
 		stater.Success("Initialized the logger")
 		err = runtime.Pull(log, stater, os.Args[2])
+		if err != nil {
+			os.Exit(1)
+		}
 	case "help":
 		fmt.Println("help output for crun")
 	default:
