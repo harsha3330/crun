@@ -66,8 +66,9 @@ func main() {
 			os.Exit(1)
 		}
 		stater.Success("Initialized the logger")
-		err = runtime.Pull(log, stater, os.Args[2])
+		err = runtime.Pull(cfg, log, stater, os.Args[2])
 		if err != nil {
+			log.Error(err.Error())
 			os.Exit(1)
 		}
 	case "help":

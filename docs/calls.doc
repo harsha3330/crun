@@ -23,12 +23,25 @@ curl -L \
   -o blobs/layer.tar.gz
 
 
+
+4.1 curl -L \
+  -H "Authorization: Bearer $TOKEN" \
+  https://registry-1.docker.io/v2/library/busybox/blobs/$CONFIG_DIGEST \
+  -o blobs/config.json
+
+4.2 curl -L \
+    -H "Authorization: Bearer $TOKEN" \
+    https://registry-1.docker.io/v2/library/busybox/blobs/$LAYER_DIGEST \
+    -o blobs/${LAYER_DIGEST#sha256:}.tar.gz
+
 5. verify hash
 sha256sum blobs/layer.tar.gz
 
 
 6. extract the layer 
 tar -xzf layer.tar.gz -C layers/<digest>
+
+6.1 create merged fs
 
 
 7. create overlay fs for container 

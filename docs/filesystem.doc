@@ -1,35 +1,50 @@
 .crun/
-├── blobs/
+│
+├── blobs/                     # Content-addressable store (source of truth)
 │   └── sha256/
+│       ├── A-manifest         # manifest for image version A
+│       ├── B-manifest         # manifest for image version B
 │       ├── A-config
-│       ├── A-layer1
-│       ├── A-layer2
 │       ├── B-config
-│       ├── B-layer1
-│       └── B-layer2
+│       ├── A-layer1.tar.gz
+│       ├── A-layer2.tar.gz
+│       ├── B-layer1.tar.gz
+│       └── B-layer2.tar.gz
 │
-├── layers/
-│   ├── sha256:A-layer1/fs/
-│   ├── sha256:A-layer2/fs/
-│   ├── sha256:B-layer1/fs/
-│   └── sha256:B-layer2/fs/
+├── layers/                    # Extracted filesystem diffs (from layer blobs)
+│   ├── A-layer1/
+│   │   └── fs/
+│   │       └── ...
+│   ├── A-layer2/
+│   │   └── fs/
+│   ├── B-layer1/
+│   │   └── fs/
+│   └── B-layer2/
+│       └── fs/
 │
-├── images/
+├── images/                    # Human-readable image namespace
 │   └── nginx/
-│       ├── tags/
-│       │   ├── 0.1    → sha256:A
-│       │   ├── 1.2    → sha256:B
-│       │   └── latest → sha256:B
+│       ├── tags/              # Tag → manifest digest mapping
+│       │   ├── 0.1            # contains: sha256:A-manifest
+│       │   ├── 1.2            # contains: sha256:B-manifest
+│       │   └── latest         # contains: sha256:B-manifest
 │       │
-│       └── manifests/
-│           ├── sha256:A/
-│           │   ├── config.json
-│           │   └── layers
-│           └── sha256:B/
-│               ├── config.json
-│               └── layers
-└── containers/
-    └── c1/
-        ├── upper/
-        ├── work/
-        └── merged/
+│       └── manifests/         # Convenience metadata (optional but useful)
+│           ├── A-manifest/
+│           │   ├── manifest.json   # copy of blob for fast access
+│           │   └── config.digest   # sha256:A-config
+│           │
+│           └── B-manifest/
+│               ├── manifest.json
+│               └── config.digest   # sha256:B-config
+│               
+├── containers/                # Runtime instances
+│   └── c1/
+│       ├── config.json        # container runtime config (from image config)
+│       ├── manifest.digest    # sha256:B-manifest (image used)
+│       ├── upper/             # writable layer (container changes)
+│       ├── work/              # overlayfs workdir
+│       └── merged/            # final root filesystem mountpoint
+│
+└── runtime/
+    └── state/                 # pids, status, etc (optional)
