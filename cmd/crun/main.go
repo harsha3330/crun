@@ -48,7 +48,7 @@ func main() {
 
 		if err := runtime.Init(&cfg, &logOpts, log, stater); err != nil {
 			log.Error("crun init failed", "error", err.Error())
-			stater.Error("init failed")
+			stater.Error("init failed", "error", err)
 			os.Exit(1)
 		} else {
 			stater.Success("crun init completed")
@@ -71,8 +71,25 @@ func main() {
 			log.Error(err.Error())
 			os.Exit(1)
 		}
-	case "help":
-		fmt.Println("help output for crun")
+	case "run":
+		logOpts, err := logger.GetLogOptions(cfg.ConfigFilePath)
+		if err != nil {
+			stater.Error("unable to get the logOptions from configfile", "error", err)
+			os.Exit(1)
+		}
+		log, err := logger.New(logOpts)
+		log.Debug("logopts", "logformat :", *logOpts.LogFormat, "loglevel :", *logOpts.LogLevel)
+		if err != nil {
+			stater.Error("unable to initalize the logger")
+			os.Exit(1)
+		}
+		stater.Success("Initialized the logger")
+		err = runtime.Run(cfg, log, stater, os.Args[2])
+		if err != nil {
+			log.Error(err.Error())
+			stater.Error("container run failed", "error", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("Unknown command : %s", os.Args[1])
 	}

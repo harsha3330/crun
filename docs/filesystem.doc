@@ -48,3 +48,5 @@
 │
 └── runtime/
     └── state/                 # pids, status, etc (optional)
+        ├── containers         # containers list with corresponding image
+        └── image              # list of images present

@@ -36,6 +36,20 @@ type OCIManifest struct {
 	Layers        []Descriptor `json:"layers"`
 }
 
+type OCIImageConfig struct {
+	Architecture string `json:"architecture"`
+	OS           string `json:"os"`
+
+	Config struct {
+		Env          []string       `json:"Env"`
+		Entrypoint   []string       `json:"Entrypoint"`
+		Cmd          []string       `json:"Cmd"`
+		WorkingDir   string         `json:"WorkingDir"`
+		ExposedPorts map[string]any `json:"ExposedPorts"`
+		StopSignal   string         `json:"StopSignal"`
+	} `json:"config"`
+}
+
 func DecodeImageManifest(data []byte) (*OCIManifest, error) {
 	raw, err := base64.StdEncoding.DecodeString(string(data))
 	if err != nil {

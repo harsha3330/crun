@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
@@ -16,8 +17,23 @@ type Config struct {
 	LogFormat      logger.LogFormat
 }
 
+func getRealUserHome() string {
+	sudoUser := os.Getenv("SUDO_USER")
+	if sudoUser != "" {
+		u, err := user.Lookup(sudoUser)
+		if err == nil {
+			return u.HomeDir
+		}
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		return home
+	}
+	return "/root"
+}
+
 func Default() Config {
-	home, _ := os.UserHomeDir()
+	home := getRealUserHome()
 
 	return Config{
 		RootDir:        filepath.Join(home, ".crun"),
