@@ -278,6 +278,8 @@ func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image strin
 		_ = syscall.Kill(pid, syscall.SIGKILL)
 		return err
 	}
+	imageRefPath := filepath.Join(containerDir, "image")
+	_ = os.WriteFile(imageRefPath, []byte(image), 0644)
 
 	stater.Success("container started (detached)",
 		"container-id", containerId,

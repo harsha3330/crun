@@ -97,6 +97,10 @@ func getImageManifest(repo, digest, token string) ([]byte, error) {
 }
 
 func DownloadBlob(repo, digest, token, destDir string) error {
+	filename := filepath.Join(destDir, digest[7:])
+	if _, err := os.Stat(filename); err == nil {
+		return nil // already have this blob, skip download
+	}
 	url := fmt.Sprintf("https://registry-1.docker.io/v2/%s/blobs/%s", repo, digest)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -111,7 +115,6 @@ func DownloadBlob(repo, digest, token, destDir string) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download %s: %s", digest, resp.Status)
 	}
-	filename := filepath.Join(destDir, digest[7:])
 	out, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -138,10 +141,10 @@ func DownloadImageBlobs(repo string, config pkg.Descriptor, layers []pkg.Descrip
 			stater.Error("error downloading blob", "digest", digest, "error", err.Error())
 			errCh <- err
 			return
-		} else {
-			log.Info("downloaded blob", "digest", digest)
-			stater.Success("downloaded blob", "digest", digest)
 		}
+		// DownloadBlob returns nil if blob already existed (skipped) or was downloaded
+		log.Info("blob ready", "digest", digest)
+		stater.Success("blob ready", "digest", digest)
 	}
 	wg.Add(1)
 	go download(config.Digest)
