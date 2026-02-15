@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 func CheckPath(path string, isDir bool) error {
@@ -108,16 +109,17 @@ func extractTarGz(tarPath, dest string) error {
 		if err != nil {
 			return err
 		}
-
 		target := filepath.Join(dest, hdr.Name)
-
 		switch hdr.Typeflag {
 		case tar.TypeDir:
-			os.MkdirAll(target, os.FileMode(hdr.Mode))
-
+			if err := os.MkdirAll(target, os.FileMode(hdr.Mode)); err != nil {
+				return err
+			}
 		case tar.TypeReg:
-			os.MkdirAll(filepath.Dir(target), 0755)
-			out, err := os.Create(target)
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return err
+			}
+			out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(hdr.Mode))
 			if err != nil {
 				return err
 			}
@@ -126,10 +128,62 @@ func extractTarGz(tarPath, dest string) error {
 				return err
 			}
 			out.Close()
-
+			if err := os.Chmod(target, os.FileMode(hdr.Mode)); err != nil {
+				return err
+			}
 		case tar.TypeSymlink:
-			os.Symlink(hdr.Linkname, target)
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return err
+			}
+			if err := os.Symlink(hdr.Linkname, target); err != nil && !os.IsExist(err) {
+				return err
+			}
 		}
 	}
+
+	return nil
+}
+
+func mkdev(major, minor int) int {
+	return (major << 8) | minor
+}
+
+func SetupDev(rootfs string) error {
+	dev := filepath.Join(rootfs, "dev")
+	if err := os.RemoveAll(dev); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dev, 0755); err != nil {
+		return err
+	}
+	if err := syscall.Mknod(
+		filepath.Join(dev, "null"),
+		syscall.S_IFCHR|0666,
+		mkdev(1, 3),
+	); err != nil {
+		return err
+	}
+	if err := syscall.Mknod(
+		filepath.Join(dev, "zero"),
+		syscall.S_IFCHR|0666,
+		mkdev(1, 5),
+	); err != nil {
+		return err
+	}
+	if err := syscall.Mknod(
+		filepath.Join(dev, "random"),
+		syscall.S_IFCHR|0666,
+		mkdev(1, 8),
+	); err != nil {
+		return err
+	}
+	if err := syscall.Mknod(
+		filepath.Join(dev, "urandom"),
+		syscall.S_IFCHR|0666,
+		mkdev(1, 9),
+	); err != nil {
+		return err
+	}
+
 	return nil
 }

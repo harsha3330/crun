@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -84,6 +85,31 @@ func buildProcessArgs(cfg pkg.OCIImageConfig) []string {
 	return cmd
 }
 
+func startContainerSimple(rootfs string, args []string, env []string) (int, error) {
+	if len(args) == 0 {
+		return 0, fmt.Errorf("no command specified")
+	}
+
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Env = env
+	cmd.Dir = "/"
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Chroot:    rootfs,
+		Pdeathsig: syscall.SIGKILL,
+		Setpgid:   true,
+	}
+
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	return cmd.Process.Pid, nil
+}
+
 func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image string) error {
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("crun must be run as root for creating merged fs and mounting")
@@ -134,6 +160,12 @@ func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image strin
 	}
 	stater.Success("creating the merged filesystem ", "containerID", containerId)
 
+	mergedPath := filepath.Join(cfg.RootDir, "containers", containerId, "merged")
+	if err := pkg.SetupDev(mergedPath); err != nil {
+		stater.Error("failed to setup /dev", "error", err)
+		return err
+	}
+
 	configDigest := ociImageManifest.Config.Digest[7:]
 	configFilePath := filepath.Join(cfg.RootDir, "blobs", configDigest)
 	configByteData, err := os.ReadFile(configFilePath)
@@ -161,13 +193,16 @@ func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image strin
 	if len(processArgs) == 0 {
 		return fmt.Errorf("no command specified in image config")
 	}
-
-	mergedPath := filepath.Join(cfg.RootDir, "containers", containerId, "merged")
 	stater.Step("starting container process",
 		"id", containerId,
 		"rootfs", mergedPath,
 		"cmd", processArgs,
 	)
-
+	pid, err := startContainerSimple(mergedPath, processArgs, configData.Config.Env)
+	if err != nil {
+		stater.Error("failed to start container process", "error", err)
+		return err
+	}
+	stater.Success("created a process for container", "pid", pid, "containerId", containerId)
 	return nil
 }
