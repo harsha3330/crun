@@ -5,12 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/harsha3330/crun/internal/config"
 	logger "github.com/harsha3330/crun/internal/log"
@@ -85,7 +88,7 @@ func buildProcessArgs(cfg pkg.OCIImageConfig) []string {
 	return cmd
 }
 
-func startContainerSimple(rootfs string, args []string, env []string) (int, error) {
+func startContainerSimple(rootfs string, args []string, env []string, logFile *os.File, detached bool, hostNetwork bool) (int, error) {
 	if len(args) == 0 {
 		return 0, fmt.Errorf("no command specified")
 	}
@@ -94,23 +97,68 @@ func startContainerSimple(rootfs string, args []string, env []string) (int, erro
 	cmd.Env = env
 	cmd.Dir = "/"
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Chroot:    rootfs,
-		Pdeathsig: syscall.SIGKILL,
-		Setpgid:   true,
+	if logFile != nil {
+		if detached {
+			cmd.Stdout = logFile
+			cmd.Stderr = logFile
+		} else {
+			cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
+			cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+		}
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 	}
+
+	cloneFlags := uintptr(0)
+	if !hostNetwork {
+		cloneFlags = syscall.CLONE_NEWNET
+	}
+	attr := &syscall.SysProcAttr{
+		Chroot:     rootfs,
+		Setpgid:    true,
+		Cloneflags: cloneFlags,
+	}
+	if !detached {
+		attr.Pdeathsig = syscall.SIGKILL
+	}
+	cmd.SysProcAttr = attr
 
 	if err := cmd.Start(); err != nil {
 		return 0, err
 	}
 
+	if detached {
+		return cmd.Process.Pid, nil
+	}
+
+	pgid := -cmd.Process.Pid
+	sigCh := make(chan os.Signal, 2)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for sig := range sigCh {
+			_ = syscall.Kill(pgid, sig.(syscall.Signal))
+		}
+	}()
+
+	err := cmd.Wait()
+	signal.Stop(sigCh)
+	close(sigCh)
+	if err != nil {
+		return cmd.Process.Pid, err
+	}
 	return cmd.Process.Pid, nil
 }
 
-func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image string) error {
+type RunOptions struct {
+	HostNetwork bool
+}
+
+func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image string, opts *RunOptions) error {
+	if opts == nil {
+		opts = &RunOptions{}
+	}
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("crun must be run as root for creating merged fs and mounting")
 	}
@@ -193,16 +241,56 @@ func Run(cfg config.Config, log *slog.Logger, stater logger.Console, image strin
 	if len(processArgs) == 0 {
 		return fmt.Errorf("no command specified in image config")
 	}
+
+	containerDir := filepath.Join(cfg.RootDir, "containers", containerId)
+	logPath := filepath.Join(containerDir, "log")
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		stater.Error("failed to create container log file", "error", err)
+		return err
+	}
+	defer logFile.Close()
+
+	startedLine := fmt.Sprintf("=== Container started at %s | container-id: %s ===\n",
+		time.Now().Format(time.RFC3339), containerId)
+	if _, err := logFile.WriteString(startedLine); err != nil {
+		stater.Warn("failed to write started line to log file", "error", err)
+	}
+	stater.Success("Container started",
+		"container-id", containerId,
+		"logs", logPath,
+	)
+
 	stater.Step("starting container process",
 		"id", containerId,
 		"rootfs", mergedPath,
 		"cmd", processArgs,
 	)
-	pid, err := startContainerSimple(mergedPath, processArgs, configData.Config.Env)
+	pid, err := startContainerSimple(mergedPath, processArgs, configData.Config.Env, logFile, true, opts.HostNetwork)
 	if err != nil {
 		stater.Error("failed to start container process", "error", err)
 		return err
 	}
-	stater.Success("created a process for container", "pid", pid, "containerId", containerId)
+
+	pidPath := filepath.Join(containerDir, "pid")
+	if err := os.WriteFile(pidPath, []byte(fmt.Sprintf("%d", pid)), 0644); err != nil {
+		stater.Error("failed to write pid file", "error", err)
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+		return err
+	}
+
+	stater.Success("container started (detached)",
+		"container-id", containerId,
+		"pid", pid,
+		"logs", logPath,
+	)
+	log.Info("container started (detached)", "container-id", containerId, "pid", pid, "logs", logPath)
+	stater.Step(fmt.Sprintf("stop: crun stop %s", containerId))
+	stater.Step(fmt.Sprintf("logs: cat %s", logPath))
+	if opts.HostNetwork {
+		stater.Step("UI: http://localhost (e.g. port 80 for nginx)")
+	} else {
+		stater.Step("service: listening in container (e.g. port 80); use --network=host to access UI at http://localhost")
+	}
 	return nil
 }

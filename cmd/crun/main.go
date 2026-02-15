@@ -72,6 +72,16 @@ func main() {
 			os.Exit(1)
 		}
 	case "run":
+		runCmd := flag.NewFlagSet("run", flag.ExitOnError)
+		networkHost := runCmd.Bool("network-host", false, "use host network (access UI at http://localhost)")
+		if err := runCmd.Parse(os.Args[2:]); err != nil {
+			os.Exit(1)
+		}
+		if runCmd.NArg() < 1 {
+			stater.Error("usage: crun run [--network-host] <image>")
+			os.Exit(1)
+		}
+		image := runCmd.Arg(0)
 		logOpts, err := logger.GetLogOptions(cfg.ConfigFilePath)
 		if err != nil {
 			stater.Error("unable to get the logOptions from configfile", "error", err)
@@ -84,10 +94,20 @@ func main() {
 			os.Exit(1)
 		}
 		stater.Success("Initialized the logger")
-		err = runtime.Run(cfg, log, stater, os.Args[2])
+		runOpts := &runtime.RunOptions{HostNetwork: *networkHost}
+		err = runtime.Run(cfg, log, stater, image, runOpts)
 		if err != nil {
 			log.Error(err.Error())
 			stater.Error("container run failed", "error", err)
+			os.Exit(1)
+		}
+	case "stop":
+		if len(os.Args) < 3 {
+			stater.Error("usage: crun stop <container-id>")
+			os.Exit(1)
+		}
+		if err := runtime.Stop(cfg, stater, os.Args[2]); err != nil {
+			stater.Error("stop failed", "error", err)
 			os.Exit(1)
 		}
 	default:
